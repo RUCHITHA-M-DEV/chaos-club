@@ -1,0 +1,26 @@
+{
+  "name": "chaos-club",
+  "version": "1.0.0",
+  "description": "CHAOS CLUB – Multiplayer Party Gaming Platform",
+  "private": true,
+  "scripts": {
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build:server": "cd server && npm run build",
+    "build:client": "cd client && npm run build",
+    "build": "npm run build:server && npm run build:client",
+    "test": "cd server && npm test"
+  },
+  "keywords": [
+    "multiplayer",
+    "party-game",
+    "socket.io",
+    "react",
+    "express",
+    "pwa",
+    "realtime"
+  ],
+  "author": "CHAOS CLUB Team",
+  "license": "MIT"
+}
+

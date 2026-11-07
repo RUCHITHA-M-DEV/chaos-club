@@ -1,0 +1,355 @@
+import React, { useState } from 'react';
+import {
+  Copy,
+  Check,
+  Share2,
+  Crown,
+  Play,
+  CheckCircle,
+  Clock,
+  Sparkles,
+  Users,
+  ShieldCheck,
+  Zap,
+} from 'lucide-react';
+import { Player, GameType, SanitizedRoomState } from '../../types';
+import { sound } from '../../services/sound';
+
+interface RoomLobbyProps {
+  room: SanitizedRoomState;
+  currentPlayer: Player;
+  onToggleReady: () => void;
+  onSelectGame: (gameType: GameType) => void;
+  onStartGame: () => void;
+  onLeaveRoom: () => void;
+}
+
+const MINI_GAMES: {
+  id: GameType;
+  name: string;
+  icon: string;
+  tagline: string;
+  minPlayers: number;
+  maxPlayers: number;
+  accent: string;
+}[] = [
+  {
+    id: 'SECRET_AGENT',
+    name: 'Secret Agent',
+    icon: '🕵️‍♂️',
+    tagline: 'Covert missions, deception, and challenge showdowns.',
+    minPlayers: 2,
+    maxPlayers: 10,
+    accent: 'border-purple-500/40 text-purple-400',
+  },
+  {
+    id: 'FAKE_ANSWER',
+    name: 'Fake Answer',
+    icon: '🎭',
+    tagline: 'Submit ridiculous fake answers and fool everyone.',
+    minPlayers: 2,
+    maxPlayers: 10,
+    accent: 'border-pink-500/40 text-pink-400',
+  },
+  {
+    id: 'QUICK_DRAW',
+    name: 'Quick Draw',
+    icon: '🎨',
+    tagline: 'Synchronized live sketch guessing with speed bonuses.',
+    minPlayers: 2,
+    maxPlayers: 10,
+    accent: 'border-cyan-500/40 text-cyan-400',
+  },
+  {
+    id: 'WHO_KNOWS_ME',
+    name: 'Who Knows Me Best?',
+    icon: '🔮',
+    tagline: 'Predict your friend’s deepest secrets and habits.',
+    minPlayers: 2,
+    maxPlayers: 10,
+    accent: 'border-amber-500/40 text-amber-400',
+  },
+  {
+    id: 'SURVIVAL_VOTE',
+    name: 'Survival Vote',
+    icon: '🏝️',
+    tagline: 'Vote on hilarious dilemmas to survive wild crises.',
+    minPlayers: 2,
+    maxPlayers: 10,
+    accent: 'border-emerald-500/40 text-emerald-400',
+  },
+  {
+    id: 'REACTION_BATTLE',
+    name: 'Reaction Battle',
+    icon: '⚡',
+    tagline: 'Lightning reflex showdown with green GO and red STOP traps.',
+    minPlayers: 2,
+    maxPlayers: 10,
+    accent: 'border-red-500/40 text-red-400',
+  },
+];
+
+export const RoomLobby: React.FC<RoomLobbyProps> = ({
+  room,
+  currentPlayer,
+  onToggleReady,
+  onSelectGame,
+  onStartGame,
+  onLeaveRoom,
+}) => {
+  const [copied, setCopied] = useState(false);
+  const activePlayers = Object.values(room.players).filter((p) => p.isConnected);
+  const isHost = currentPlayer.isHost;
+  const canStart = activePlayers.length >= room.minPlayers;
+
+  const handleCopyCode = () => {
+    sound.playClick();
+    navigator.clipboard.writeText(room.code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShare = async () => {
+    sound.playClick();
+    const shareUrl = `${window.location.origin}?room=${room.code}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join my CHAOS CLUB Room!',
+          text: `Join my CHAOS CLUB multiplayer party room with code ${room.code}!`,
+          url: shareUrl,
+        });
+      } catch (err) {
+        handleCopyCode();
+      }
+    } else {
+      handleCopyCode();
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      {/* Top Banner: Room Code & Share Invitation */}
+      <div className="glass-card rounded-3xl p-5 sm:p-7 border border-purple-500/30 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+            <span className="text-xs uppercase font-extrabold tracking-wider text-purple-300">
+              Private Room Lobby
+            </span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-white">
+            Invite your friends to start the chaos!
+          </h2>
+        </div>
+
+        {/* Room Code Badge & Action Buttons */}
+        <div className="flex items-center gap-3">
+          <div
+            onClick={handleCopyCode}
+            title="Click to copy room code"
+            className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-surface border-2 border-purple-500/50 hover:border-purple-400 cursor-pointer transition-all shadow-lg hover:shadow-purple-500/20 group select-none"
+          >
+            <div>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-gray-400 block">
+                Room Code
+              </span>
+              <span className="font-mono font-black text-2xl sm:text-3xl tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+                {room.code}
+              </span>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-300 group-hover:bg-purple-500/20">
+              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            </div>
+          </div>
+
+          <button
+            onClick={handleShare}
+            className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold shadow-lg shadow-purple-500/25 transition-all flex items-center justify-center"
+            title="Share Room Invite"
+          >
+            <Share2 className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Player Roster (5 cols) */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="glass-card rounded-3xl p-5 border border-purple-500/20">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-purple-400" />
+                <h3 className="font-extrabold text-base text-white">Joined Players</h3>
+              </div>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                {activePlayers.length} / {room.maxPlayers}
+              </span>
+            </div>
+
+            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+              {Object.values(room.players).map((p) => {
+                const isMe = p.id === currentPlayer.id;
+                return (
+                  <div
+                    key={p.id}
+                    className={`flex items-center justify-between p-3 rounded-2xl transition-all ${
+                      isMe
+                        ? 'bg-purple-900/30 border-2 border-purple-500/50'
+                        : 'bg-surface/70 border border-purple-500/10'
+                    } ${!p.isConnected ? 'opacity-40' : ''}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-2xl shadow-inner bg-surfaceLight"
+                        style={{ border: `2px solid ${p.color}` }}
+                      >
+                        {p.avatar}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-sm text-gray-100 max-w-[120px] truncate">
+                            {p.nickname}
+                          </span>
+                          {isMe && (
+                            <span className="text-[9px] px-1 py-0.2 rounded bg-purple-500/30 text-purple-300 font-bold">
+                              YOU
+                            </span>
+                          )}
+                        </div>
+                        {p.isHost && (
+                          <div className="flex items-center gap-1 text-[10px] text-amber-400 font-bold">
+                            <Crown className="w-3 h-3" />
+                            <span>Room Host</span>
+                          </div>
+                        )}
+                        {!p.isConnected && (
+                          <span className="text-[10px] text-rose-400 font-medium">Reconnecting...</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Ready Status */}
+                    <div>
+                      {p.isReady ? (
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          <span>READY</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/40 border border-amber-500/30 text-amber-400 text-xs font-bold">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>WAITING</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Non-host Ready Toggle Button */}
+            {!isHost && (
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  onToggleReady();
+                }}
+                className={`w-full mt-4 py-3 px-4 rounded-xl font-extrabold text-sm transition-all flex items-center justify-center gap-2 ${
+                  currentPlayer.isReady
+                    ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/40'
+                    : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20'
+                }`}
+              >
+                <CheckCircle className="w-4 h-4" />
+                <span>{currentPlayer.isReady ? 'READY (CLICK TO UNREADY)' : 'I AM READY!'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Mini-Game Selector (7 cols) */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="glass-card rounded-3xl p-5 sm:p-6 border border-purple-500/20">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-extrabold text-base sm:text-lg text-white">Select Mini-Game</h3>
+                <p className="text-xs text-gray-400">
+                  {isHost
+                    ? 'Pick which game the squad will play first'
+                    : 'The host will choose a game for this round'}
+                </p>
+              </div>
+              <span className="text-xs font-bold text-pink-400 uppercase tracking-wider">
+                6 Modes
+              </span>
+            </div>
+
+            {/* Game Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+              {MINI_GAMES.map((game) => {
+                const isSelected = room.selectedGame === game.id;
+                return (
+                  <div
+                    key={game.id}
+                    onClick={() => {
+                      if (isHost) {
+                        sound.playClick();
+                        onSelectGame(game.id);
+                      }
+                    }}
+                    className={`p-3.5 rounded-2xl transition-all border text-left ${
+                      isSelected
+                        ? 'bg-purple-900/40 border-2 border-purple-400 shadow-lg shadow-purple-500/20'
+                        : 'bg-surface/80 border-purple-500/10 hover:border-purple-500/30'
+                    } ${isHost ? 'cursor-pointer hover:scale-[1.02]' : 'cursor-default'}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-3xl">{game.icon}</span>
+                      {isSelected && (
+                        <span className="px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-300 text-[10px] font-black uppercase tracking-wider border border-purple-500/40">
+                          SELECTED
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-bold text-sm text-white mb-0.5">{game.name}</div>
+                    <p className="text-xs text-gray-400 leading-tight line-clamp-2">{game.tagline}</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Start Game Action (Host Only) */}
+            {isHost ? (
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    onStartGame();
+                  }}
+                  disabled={!canStart}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-black text-base tracking-wide shadow-xl shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Play className="w-5 h-5 fill-white" />
+                  <span>START {room.selectedGame.replace('_', ' ')}</span>
+                </button>
+                {!canStart && (
+                  <p className="text-center text-xs text-amber-400/90 font-medium">
+                    ⚠️ Need at least {room.minPlayers} players to start (currently {activePlayers.length})
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-surface/80 border border-purple-500/20 text-center">
+                <span className="text-xs text-gray-400">
+                  Waiting for host (<strong className="text-purple-300">{room.players[room.hostId]?.nickname}</strong>) to launch the game...
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
