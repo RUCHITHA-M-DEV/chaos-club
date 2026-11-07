@@ -44,9 +44,7 @@ setupSocketHandlers(io, roomManager);
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    app: 'CHAOS CLUB Multiplayer Server',
-    dbConnected: mongoose.connection.readyState === 1,
-    timestamp: new Date().toISOString(),
+    dbConnected: mongoose.connection.readyState === 1
   });
 });
 
