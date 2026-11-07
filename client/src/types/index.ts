@@ -29,6 +29,16 @@ export interface DrawStroke {
   color: string;
   size: number;
   isEraser: boolean;
+  strokeId?: string;
+}
+
+export type WordDifficulty = 'Easy' | 'Medium' | 'Hard';
+
+export interface QuickDrawWordItem {
+  word: string;
+  category: string;
+  hint: string;
+  difficulty: WordDifficulty;
 }
 
 export interface DrawGuess {
@@ -109,8 +119,10 @@ export interface QuickDrawClientState {
   word: string | null;
   hint: string;
   category: string;
+  difficulty?: WordDifficulty;
   phase: 'SELECTING' | 'DRAWING' | 'REVEAL';
   timeRemaining: number;
+  wordChoices?: QuickDrawWordItem[] | null;
   strokes: DrawStroke[];
   guesses: DrawGuess[];
   correctGuessers: string[];
@@ -191,6 +203,21 @@ export interface ReactionBattleClientState {
   }[];
 }
 
+export interface VoteKickState {
+  targetId: string;
+  targetNickname: string;
+  initiatedBy: string;
+  initiatedByNickname: string;
+  yesVotes: string[];
+  noVotes: string[];
+  eligibleVoters: string[];
+  expiresAt: number;
+}
+
+export interface GameSettings {
+  quickDrawRounds?: number;
+}
+
 export interface SanitizedRoomState {
   code: string;
   hostId: string;
@@ -200,6 +227,8 @@ export interface SanitizedRoomState {
   maxPlayers: number;
   minPlayers: number;
   leaderboard: Record<string, number>;
+  gameSettings?: GameSettings;
+  activeVoteKick?: VoteKickState | null;
   gameSession: {
     type: GameType;
     data: any;

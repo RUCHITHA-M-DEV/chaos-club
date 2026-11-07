@@ -1,4 +1,4 @@
-import { SecretMission, SurvivalScenario } from '../types/index.js';
+import { SecretMission, SurvivalScenario, QuickDrawWordItem } from '../types/index.js';
 
 export const SEED_MISSIONS: SecretMission[] = [
   {
@@ -136,22 +136,69 @@ export const SEED_TRIVIA = [
   },
 ];
 
-export const SEED_QUICK_DRAW_WORDS = [
-  { word: 'Submarine', category: 'Vehicles', hint: 'S _ _ _ _ _ _ _ E' },
-  { word: 'Pineapple', category: 'Food', hint: 'P _ _ _ _ _ _ _ E' },
-  { word: 'Disco Ball', category: 'Party', hint: 'D _ _ _ _   B _ _ _' },
-  { word: 'Unicorn', category: 'Fantasy', hint: 'U _ _ _ _ _ N' },
-  { word: 'Rollercoaster', category: 'Amusement', hint: 'R _ _ _ _ _ _ _ _ _ _ _ R' },
-  { word: 'Campfire', category: 'Outdoors', hint: 'C _ _ _ _ _ _ E' },
-  { word: 'Astronaut', category: 'Space', hint: 'A _ _ _ _ _ _ _ T' },
-  { word: 'T-Rex', category: 'Dinosaurs', hint: 'T - _ _ X' },
-  { word: 'Tornado', category: 'Weather', hint: 'T _ _ _ _ _ O' },
-  { word: 'Flamingo', category: 'Animals', hint: 'F _ _ _ _ _ _ O' },
-  { word: 'Boombox', category: 'Retro Tech', hint: 'B _ _ _ _ _ X' },
-  { word: 'Lighthouse', category: 'Buildings', hint: 'L _ _ _ _ _ _ _ _ E' },
-  { word: 'Popcorn', category: 'Snacks', hint: 'P _ _ _ _ _ N' },
-  { word: 'Skateboard', category: 'Sports', hint: 'S _ _ _ _ _ _ _ _ D' },
-  { word: 'Volcano', category: 'Nature', hint: 'V _ _ _ _ _ O' },
+export const SEED_QUICK_DRAW_WORDS: QuickDrawWordItem[] = [
+  // EASY
+  { word: 'Cat', category: 'Animals', hint: 'C _ T', difficulty: 'Easy' },
+  { word: 'Pizza', category: 'Food', hint: 'P _ _ _ A', difficulty: 'Easy' },
+  { word: 'Sun', category: 'Nature', hint: 'S _ N', difficulty: 'Easy' },
+  { word: 'Car', category: 'Vehicles', hint: 'C _ R', difficulty: 'Easy' },
+  { word: 'Apple', category: 'Food', hint: 'A _ _ _ E', difficulty: 'Easy' },
+  { word: 'Tree', category: 'Nature', hint: 'T _ _ E', difficulty: 'Easy' },
+  { word: 'House', category: 'Buildings', hint: 'H _ _ _ E', difficulty: 'Easy' },
+  { word: 'Fish', category: 'Animals', hint: 'F _ _ H', difficulty: 'Easy' },
+  { word: 'Star', category: 'Space', hint: 'S _ _ R', difficulty: 'Easy' },
+  { word: 'Boat', category: 'Vehicles', hint: 'B _ _ T', difficulty: 'Easy' },
+  { word: 'Clock', category: 'Everyday', hint: 'C _ _ _ K', difficulty: 'Easy' },
+  { word: 'Book', category: 'Objects', hint: 'B _ _ K', difficulty: 'Easy' },
+  { word: 'Ice Cream', category: 'Food', hint: 'I _ _   C _ _ _ M', difficulty: 'Easy' },
+  { word: 'Heart', category: 'Symbols', hint: 'H _ _ _ T', difficulty: 'Easy' },
+  { word: 'Cloud', category: 'Weather', hint: 'C _ _ _ D', difficulty: 'Easy' },
+  { word: 'Key', category: 'Objects', hint: 'K _ Y', difficulty: 'Easy' },
+  { word: 'Banana', category: 'Food', hint: 'B _ _ _ _ A', difficulty: 'Easy' },
+  { word: 'Balloon', category: 'Party', hint: 'B _ _ _ _ _ N', difficulty: 'Easy' },
+  { word: 'Coffee', category: 'Drinks', hint: 'C _ _ _ _ E', difficulty: 'Easy' },
+  { word: 'Smiley', category: 'Faces', hint: 'S _ _ _ _ Y', difficulty: 'Easy' },
+
+  // MEDIUM
+  { word: 'Submarine', category: 'Vehicles', hint: 'S _ _ _ _ _ _ _ E', difficulty: 'Medium' },
+  { word: 'Pineapple', category: 'Food', hint: 'P _ _ _ _ _ _ _ E', difficulty: 'Medium' },
+  { word: 'Disco Ball', category: 'Party', hint: 'D _ _ _ _   B _ _ _', difficulty: 'Medium' },
+  { word: 'Unicorn', category: 'Fantasy', hint: 'U _ _ _ _ _ N', difficulty: 'Medium' },
+  { word: 'Campfire', category: 'Outdoors', hint: 'C _ _ _ _ _ _ E', difficulty: 'Medium' },
+  { word: 'Astronaut', category: 'Space', hint: 'A _ _ _ _ _ _ _ T', difficulty: 'Medium' },
+  { word: 'Flamingo', category: 'Animals', hint: 'F _ _ _ _ _ _ O', difficulty: 'Medium' },
+  { word: 'Lighthouse', category: 'Buildings', hint: 'L _ _ _ _ _ _ _ _ E', difficulty: 'Medium' },
+  { word: 'Popcorn', category: 'Snacks', hint: 'P _ _ _ _ _ N', difficulty: 'Medium' },
+  { word: 'Skateboard', category: 'Sports', hint: 'S _ _ _ _ _ _ _ _ D', difficulty: 'Medium' },
+  { word: 'Volcano', category: 'Nature', hint: 'V _ _ _ _ _ O', difficulty: 'Medium' },
+  { word: 'Guitar', category: 'Music', hint: 'G _ _ _ _ R', difficulty: 'Medium' },
+  { word: 'Spider Web', category: 'Nature', hint: 'S _ _ _ _ _   W _ B', difficulty: 'Medium' },
+  { word: 'Treasure Chest', category: 'Fantasy', hint: 'T _ _ _ _ _ _ E   C _ _ _ T', difficulty: 'Medium' },
+  { word: 'Helicopter', category: 'Vehicles', hint: 'H _ _ _ _ _ _ _ _ R', difficulty: 'Medium' },
+  { word: 'Penguin', category: 'Animals', hint: 'P _ _ _ _ _ N', difficulty: 'Medium' },
+  { word: 'Robot', category: 'Sci-Fi', hint: 'R _ _ _ T', difficulty: 'Medium' },
+  { word: 'Sandwich', category: 'Food', hint: 'S _ _ _ _ _ _ H', difficulty: 'Medium' },
+  { word: 'Sunglasses', category: 'Fashion', hint: 'S _ _ _ _ _ _ _ _ S', difficulty: 'Medium' },
+  { word: 'Waterfall', category: 'Nature', hint: 'W _ _ _ _ _ _ _ L', difficulty: 'Medium' },
+
+  // HARD
+  { word: 'Rollercoaster', category: 'Amusement', hint: 'R _ _ _ _ _ _ _ _ _ _ _ R', difficulty: 'Hard' },
+  { word: 'Boombox', category: 'Retro Tech', hint: 'B _ _ _ _ _ X', difficulty: 'Hard' },
+  { word: 'T-Rex', category: 'Dinosaurs', hint: 'T - _ _ X', difficulty: 'Hard' },
+  { word: 'Tornado', category: 'Weather', hint: 'T _ _ _ _ _ O', difficulty: 'Hard' },
+  { word: 'Chameleon', category: 'Animals', hint: 'C _ _ _ _ _ _ _ N', difficulty: 'Hard' },
+  { word: 'Black Hole', category: 'Space', hint: 'B _ _ _ K   H _ _ E', difficulty: 'Hard' },
+  { word: 'Solar Eclipse', category: 'Space', hint: 'S _ _ _ R   E _ _ _ _ _ E', difficulty: 'Hard' },
+  { word: 'Time Machine', category: 'Sci-Fi', hint: 'T _ _ E   M _ _ _ _ _ E', difficulty: 'Hard' },
+  { word: 'Frankenstein', category: 'Monsters', hint: 'F _ _ _ _ _ _ _ _ _ _ N', difficulty: 'Hard' },
+  { word: 'Spaceship', category: 'Space', hint: 'S _ _ _ _ _ _ _ P', difficulty: 'Hard' },
+  { word: 'DNA Helix', category: 'Science', hint: 'D N A   H _ _ _ X', difficulty: 'Hard' },
+  { word: 'Kangaroo', category: 'Animals', hint: 'K _ _ _ _ _ _ O', difficulty: 'Hard' },
+  { word: 'Fireworks', category: 'Celebration', hint: 'F _ _ _ _ _ _ _ S', difficulty: 'Hard' },
+  { word: 'Ferris Wheel', category: 'Amusement', hint: 'F _ _ _ _ S   W _ _ _ L', difficulty: 'Hard' },
+  { word: 'Hot Air Balloon', category: 'Vehicles', hint: 'H _ T   A _ R   B _ _ _ _ _ N', difficulty: 'Hard' },
+  { word: 'Scorpion', category: 'Animals', hint: 'S _ _ _ _ _ _ N', difficulty: 'Hard' },
+  { word: 'Windmill', category: 'Structures', hint: 'W _ _ _ _ _ _ L', difficulty: 'Hard' },
 ];
 
 export const SEED_WHO_KNOWS_QUESTIONS = [

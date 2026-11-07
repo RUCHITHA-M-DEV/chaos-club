@@ -11,15 +11,21 @@ import {
   Users,
   ShieldCheck,
   Zap,
+  Sliders,
+  UserX,
+  AlertTriangle,
 } from 'lucide-react';
 import { Player, GameType, SanitizedRoomState } from '../../types';
 import { sound } from '../../services/sound';
+import { socket } from '../../services/socket';
 
 interface RoomLobbyProps {
   room: SanitizedRoomState;
   currentPlayer: Player;
   onToggleReady: () => void;
   onSelectGame: (gameType: GameType) => void;
+  onUpdateGameSettings: (settings: { quickDrawRounds?: number }) => void;
+  onInitiateVoteKick: (targetPlayerId: string) => void;
   onStartGame: () => void;
   onLeaveRoom: () => void;
 }
@@ -55,7 +61,7 @@ const MINI_GAMES: {
     id: 'QUICK_DRAW',
     name: 'Quick Draw',
     icon: '🎨',
-    tagline: 'Synchronized live sketch guessing with speed bonuses.',
+    tagline: 'Choose 1 of 3 words, sketch live with pro tools, and speed guess.',
     minPlayers: 2,
     maxPlayers: 10,
     accent: 'border-cyan-500/40 text-cyan-400',
@@ -89,24 +95,34 @@ const MINI_GAMES: {
   },
 ];
 
+const ROUND_OPTIONS = [1, 2, 3, 5, 10];
+
 export const RoomLobby: React.FC<RoomLobbyProps> = ({
   room,
   currentPlayer,
   onToggleReady,
   onSelectGame,
+  onUpdateGameSettings,
+  onInitiateVoteKick,
   onStartGame,
   onLeaveRoom,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [kickTarget, setKickTarget] = useState<Player | null>(null);
+
   const activePlayers = Object.values(room.players).filter((p) => p.isConnected);
   const isHost = currentPlayer.isHost;
   const canStart = activePlayers.length >= room.minPlayers;
+  const currentRounds = room.gameSettings?.quickDrawRounds || 3;
 
   const handleCopyCode = () => {
     sound.playClick();
     navigator.clipboard.writeText(room.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    if (socket.connected && currentPlayer?.id) {
+      socket.emit('player_ping', { roomCode: room.code, playerId: currentPlayer.id });
+    }
   };
 
   const handleShare = async () => {
@@ -124,6 +140,9 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
       }
     } else {
       handleCopyCode();
+    }
+    if (socket.connected && currentPlayer?.id) {
+      socket.emit('player_ping', { roomCode: room.code, playerId: currentPlayer.id });
     }
   };
 
@@ -190,6 +209,8 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
             <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
               {Object.values(room.players).map((p) => {
                 const isMe = p.id === currentPlayer.id;
+                const canVoteKickThisPlayer = !isMe && !p.isHost;
+
                 return (
                   <div
                     key={p.id}
@@ -229,8 +250,8 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
                       </div>
                     </div>
 
-                    {/* Ready Status */}
-                    <div>
+                    {/* Ready Status & Vote Kick Button */}
+                    <div className="flex items-center gap-2">
                       {p.isReady ? (
                         <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-950/60 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
                           <CheckCircle className="w-3.5 h-3.5" />
@@ -242,23 +263,35 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
                           <span>WAITING</span>
                         </div>
                       )}
+
+                      {/* Vote Kick Action */}
+                      {canVoteKickThisPlayer && (
+                        <button
+                          type="button"
+                          onClick={() => setKickTarget(p)}
+                          title={`Vote to kick ${p.nickname}`}
+                          className="p-1.5 rounded-xl text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        >
+                          <UserX className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Non-host Ready Toggle Button */}
+            {/* Toggle Ready Button (Non-host players) */}
             {!isHost && (
               <button
                 onClick={() => {
                   sound.playClick();
                   onToggleReady();
                 }}
-                className={`w-full mt-4 py-3 px-4 rounded-xl font-extrabold text-sm transition-all flex items-center justify-center gap-2 ${
+                className={`w-full mt-4 py-3 rounded-2xl font-black text-sm tracking-wide transition-all shadow-lg flex items-center justify-center gap-2 ${
                   currentPlayer.isReady
-                    ? 'bg-emerald-500/15 border border-emerald-500/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25'
-                    : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20'
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+                    : 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-600/30'
                 }`}
               >
                 <CheckCircle className="w-4 h-4" />
@@ -268,12 +301,14 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Mini-Game Selector (7 cols) */}
+        {/* Right Column: Mini-Game Selector & Game Settings (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="glass-card rounded-3xl p-5 sm:p-6 border border-purple-500/20">
-            <div className="flex items-center justify-between mb-4">
+          <div className="glass-card rounded-3xl p-5 sm:p-6 border border-purple-500/20 space-y-5">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-extrabold text-base sm:text-lg text-gray-900 dark:text-white">Select Mini-Game</h3>
+                <h3 className="font-extrabold text-base sm:text-lg text-gray-900 dark:text-white">
+                  Select Mini-Game
+                </h3>
                 <p className="text-xs text-gray-600 dark:text-gray-400">
                   {isHost
                     ? 'Pick which game the squad will play first'
@@ -286,7 +321,7 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
             </div>
 
             {/* Game Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {MINI_GAMES.map((game) => {
                 const isSelected = room.selectedGame === game.id;
                 return (
@@ -312,16 +347,66 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="font-bold text-sm text-gray-900 dark:text-white mb-0.5">{game.name}</div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-tight line-clamp-2">{game.tagline}</p>
+                    <div className="font-bold text-sm text-gray-900 dark:text-white mb-0.5">
+                      {game.name}
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-tight line-clamp-2">
+                      {game.tagline}
+                    </p>
                   </div>
                 );
               })}
             </div>
 
+            {/* QUICK DRAW GAME SETTINGS (ROUNDS CONFIGURATION) */}
+            {room.selectedGame === 'QUICK_DRAW' && (
+              <div className="p-4 rounded-2xl bg-cyan-950/30 border-2 border-cyan-500/40 space-y-3 animate-fadeIn">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-cyan-400" />
+                    <span className="text-xs font-black uppercase tracking-wider text-cyan-300">
+                      Quick Draw Settings
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-cyan-400">
+                    {currentRounds} {currentRounds === 1 ? 'Round' : 'Rounds'} Configured
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-gray-300 font-medium">
+                    {isHost ? 'Select Number of Rounds:' : 'Rounds configured by Host:'}
+                  </span>
+
+                  <div className="flex items-center gap-1.5">
+                    {ROUND_OPTIONS.map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        disabled={!isHost}
+                        onClick={() => {
+                          if (isHost) {
+                            sound.playClick();
+                            onUpdateGameSettings({ quickDrawRounds: num });
+                          }
+                        }}
+                        className={`w-8 h-8 rounded-xl text-xs font-black transition-all ${
+                          currentRounds === num
+                            ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/30 scale-105'
+                            : 'bg-surface text-gray-400 border border-cyan-500/20 hover:text-white'
+                        } ${!isHost ? 'cursor-default' : 'cursor-pointer hover:scale-105'}`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Start Game Action (Host Only) */}
             {isHost ? (
-              <div className="space-y-2">
+              <div className="space-y-2 pt-2">
                 <button
                   onClick={() => {
                     sound.playClick();
@@ -341,14 +426,51 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
               </div>
             ) : (
               <div className="p-4 rounded-2xl bg-surface/80 border border-purple-500/20 text-center">
-                <span className="text-xs text-gray-600 dark:text-gray-400">
-                  Waiting for host (<strong className="text-purple-600 dark:text-purple-300">{room.players[room.hostId]?.nickname}</strong>) to launch the game...
-                </span>
+                <p className="text-xs text-purple-700 dark:text-purple-300 font-bold">
+                  🎮 Waiting for the room host to start the game...
+                </p>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal to Initiate Vote Kick */}
+      {kickTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+          <div className="glass-card max-w-sm w-full rounded-3xl p-6 border-2 border-rose-500/50 shadow-2xl space-y-4 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+              <UserX className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-lg font-black text-white">Start Vote Kick?</h4>
+              <p className="text-xs text-gray-300 mt-1">
+                Start a room-wide vote to remove <strong className="text-rose-400">{kickTarget.nickname}</strong>?
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setKickTarget(null)}
+                className="py-2.5 rounded-xl bg-surface border border-purple-500/20 text-gray-300 text-xs font-bold hover:bg-surfaceLight"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  onInitiateVoteKick(kickTarget.id);
+                  setKickTarget(null);
+                }}
+                className="py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/30"
+              >
+                Start Vote
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

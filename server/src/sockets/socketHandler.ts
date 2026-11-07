@@ -11,7 +11,7 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
     if (!room) return;
 
     for (const player of Object.values(room.players)) {
-      if (player.isConnected && player.socketId) {
+      if (player.socketId) {
         const playerState = roomManager.getSanitizedRoomState(roomCode, player.id);
         io.to(player.socketId).emit('room_state_update', playerState);
       }
@@ -91,7 +91,10 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
             engine.state.timeRemaining -= 1;
             io.to(roomCode).emit('timer_tick', { timeRemaining: engine.state.timeRemaining });
           } else {
-            if (engine.state.phase === 'DRAWING') {
+            if (engine.state.phase === 'SELECTING') {
+              engine.autoSelectFallbackWord();
+              broadcastRoomState(roomCode);
+            } else if (engine.state.phase === 'DRAWING') {
               engine.revealPhase();
               broadcastRoomState(roomCode);
             } else if (engine.state.phase === 'REVEAL') {
@@ -209,6 +212,27 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
   }
 
   io.on('connection', (socket: Socket) => {
+    // 0. HEARTBEAT / KEEP-ALIVE / RESYNC
+    socket.on('player_ping', (data: { roomCode: string; playerId: string }) => {
+      if (!data?.roomCode || !data?.playerId) return;
+      const room = roomManager.getRoom(data.roomCode);
+      if (!room) return;
+
+      const player = room.players[data.playerId];
+      if (player) {
+        player.lastActive = Date.now();
+        const wasDisconnected = !player.isConnected || player.socketId !== socket.id;
+        player.isConnected = true;
+        player.socketId = socket.id;
+        roomManager.registerSocket(socket.id, room.code, player.id);
+        socket.join(room.code);
+
+        if (wasDisconnected) {
+          broadcastRoomState(room.code);
+        }
+      }
+    });
+
     // 1. CREATE ROOM
     socket.on('create_room', (data: { player: { id: string; nickname: string; avatar: string; color: string }; initialGame?: GameType }) => {
       try {
@@ -260,6 +284,16 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
       const success = roomManager.selectGame(info.room.code, info.player.id, data.gameType);
       if (success) {
         io.to(info.room.code).emit('game_changed', { gameType: data.gameType });
+        broadcastRoomState(info.room.code);
+      }
+    });
+
+    // 4b. UPDATE GAME SETTINGS (Host only)
+    socket.on('update_game_settings', (data: { settings: { quickDrawRounds?: number } }) => {
+      const info = roomManager.getPlayerBySocket(socket.id);
+      if (!info) return;
+      const success = roomManager.updateGameSettings(info.room.code, info.player.id, data.settings);
+      if (success) {
         broadcastRoomState(info.room.code);
       }
     });
@@ -367,6 +401,20 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
     });
 
     // GAME 3: QUICK DRAW
+    socket.on('select_drawing_word', (data: { word: string }) => {
+      const info = roomManager.getPlayerBySocket(socket.id);
+      if (!info) return;
+      const activeGame = roomManager.getActiveGame(info.room.code);
+      if (!activeGame || activeGame.type !== 'QUICK_DRAW') return;
+
+      if (activeGame.engine.state.drawerId === info.player.id) {
+        const ok = activeGame.engine.selectWord(data.word);
+        if (ok) {
+          broadcastRoomState(info.room.code);
+        }
+      }
+    });
+
     socket.on('draw_stroke', (stroke: DrawStroke) => {
       const info = roomManager.getPlayerBySocket(socket.id);
       if (!info) return;
@@ -377,6 +425,20 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
       if (activeGame.engine.state.drawerId === info.player.id && activeGame.engine.state.phase === 'DRAWING') {
         activeGame.engine.addStroke(stroke);
         socket.to(info.room.code).emit('draw_stroke', stroke);
+      }
+    });
+
+    socket.on('undo_stroke', () => {
+      const info = roomManager.getPlayerBySocket(socket.id);
+      if (!info) return;
+      const activeGame = roomManager.getActiveGame(info.room.code);
+      if (!activeGame || activeGame.type !== 'QUICK_DRAW') return;
+
+      if (activeGame.engine.state.drawerId === info.player.id && activeGame.engine.state.phase === 'DRAWING') {
+        const ok = activeGame.engine.undoLastStroke();
+        if (ok) {
+          io.to(info.room.code).emit('stroke_undone', { strokes: activeGame.engine.state.strokes });
+        }
       }
     });
 
@@ -518,6 +580,61 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
       const ok = roomManager.rematch(info.room.code, info.player.id);
       if (ok) {
         io.to(info.room.code).emit('rematch_started');
+        broadcastRoomState(info.room.code);
+      }
+    });
+
+    // VOTE KICK
+    socket.on('initiate_vote_kick', (data: { targetPlayerId: string }) => {
+      const info = roomManager.getPlayerBySocket(socket.id);
+      if (!info) return;
+
+      const res = roomManager.startVoteKick(info.room.code, info.player.id, data.targetPlayerId);
+      if (!res.success) {
+        socket.emit('error_message', { message: res.error || 'Failed to start vote kick' });
+        return;
+      }
+
+      const vk = res.voteState;
+      if (vk && vk.yesVotes.length >= Math.floor(vk.eligibleVoters.length / 2) + 1) {
+        io.to(info.room.code).emit('vote_kick_resolved', {
+          passed: true,
+          targetNickname: vk.targetNickname,
+        });
+        broadcastRoomState(info.room.code);
+        return;
+      }
+
+      io.to(info.room.code).emit('vote_kick_started', res.voteState);
+      broadcastRoomState(info.room.code);
+    });
+
+    socket.on('cast_kick_vote', (data: { vote: 'yes' | 'no' }) => {
+      const info = roomManager.getPlayerBySocket(socket.id);
+      if (!info) return;
+
+      const res = roomManager.castVoteKick(info.room.code, info.player.id, data.vote);
+      if (!res.success) {
+        socket.emit('error_message', { message: res.error || 'Cannot cast vote' });
+        return;
+      }
+
+      if (res.resolved) {
+        io.to(info.room.code).emit('vote_kick_resolved', {
+          passed: res.passed,
+          targetNickname: res.targetPlayer?.nickname,
+        });
+
+        if (res.passed && res.targetPlayer) {
+          if (res.targetPlayer.socketId) {
+            io.to(res.targetPlayer.socketId).emit('kicked_from_room', {
+              message: 'You have been removed from the room by vote.',
+            });
+          }
+        }
+        broadcastRoomState(info.room.code);
+      } else {
+        io.to(info.room.code).emit('vote_kick_updated', res.voteState);
         broadcastRoomState(info.room.code);
       }
     });

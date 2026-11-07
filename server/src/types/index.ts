@@ -30,6 +30,16 @@ export interface DrawStroke {
   color: string;
   size: number;
   isEraser: boolean;
+  strokeId?: string;
+}
+
+export type WordDifficulty = 'Easy' | 'Medium' | 'Hard';
+
+export interface QuickDrawWordItem {
+  word: string;
+  category: string;
+  hint: string;
+  difficulty: WordDifficulty;
 }
 
 export interface DrawGuess {
@@ -106,8 +116,10 @@ export interface QuickDrawState {
   word: string; // Private to drawer
   hint: string; // Public (e.g. "_ _ _ _ _")
   category: string;
+  difficulty: WordDifficulty;
   phase: 'SELECTING' | 'DRAWING' | 'REVEAL';
   timeRemaining: number;
+  wordChoices: QuickDrawWordItem[]; // 3 random choices shown only to drawer in SELECTING phase
   strokes: DrawStroke[];
   guesses: DrawGuess[];
   correctGuessers: string[]; // playerIds in order of speed
@@ -190,6 +202,21 @@ export type ActiveGameState =
   | { type: 'SURVIVAL_VOTE'; data: SurvivalVoteState }
   | { type: 'REACTION_BATTLE'; data: ReactionBattleState };
 
+export interface VoteKickState {
+  targetId: string;
+  targetNickname: string;
+  initiatedBy: string;
+  initiatedByNickname: string;
+  yesVotes: string[]; // playerIds
+  noVotes: string[]; // playerIds
+  eligibleVoters: string[]; // all active playerIds except target
+  expiresAt: number;
+}
+
+export interface GameSettings {
+  quickDrawRounds: number;
+}
+
 export interface Room {
   code: string;
   hostId: string;
@@ -200,6 +227,9 @@ export interface Room {
   minPlayers: number;
   gameSession: ActiveGameState | null;
   sessionLeaderboard: Record<string, number>; // playerId -> cumulative score
+  gameSettings: GameSettings;
+  activeVoteKick: VoteKickState | null;
+  lastVoteKickTime?: number;
   createdAt: number;
   lastActivity: number;
 }

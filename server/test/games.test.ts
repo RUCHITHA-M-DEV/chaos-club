@@ -117,16 +117,106 @@ describe('Mini-Games Engines Tests', () => {
     assert.strictEqual(scoresGained['p1'], 60); // P1 fooled P2 (+60 points)
   });
 
-  test('Quick Draw: synchronizes strokes, validates guesses and awards speed points', () => {
-    const game = new QuickDrawGame(['p1', 'p2'], { p1: 'Drawer', p2: 'Guesser' });
-    game.addStroke({ x0: 0, y0: 0, x1: 10, y1: 10, color: '#FFFFFF', size: 4, isEraser: false });
-    assert.strictEqual(game.state.strokes.length, 1);
+  test('Quick Draw: 1-of-3 word choice, difficulty levels, stroke undo and guess validation', () => {
+    const game = new QuickDrawGame(['p1', 'p2', 'p3'], { p1: 'Drawer', p2: 'Guesser1', p3: 'Guesser2' }, 5);
+    
+    // 1. Initial phase is SELECTING
+    assert.strictEqual(game.state.phase, 'SELECTING');
+    assert.strictEqual(game.state.wordChoices.length, 3);
+    assert.strictEqual(game.state.totalRounds, 5);
 
-    // Guesser types correct word
-    const res = game.processGuess('p2', 'Guesser', game.state.word);
+    // 3 choices must cover Easy, Medium, Hard
+    const diffs = game.state.wordChoices.map((w) => w.difficulty);
+    assert.ok(diffs.includes('Easy'));
+    assert.ok(diffs.includes('Medium'));
+    assert.ok(diffs.includes('Hard'));
+
+    // Drawer can see choices; guessers cannot
+    const drawerState = game.getPublicState('p1');
+    const guesserState = game.getPublicState('p2');
+    assert.ok(drawerState.wordChoices !== null && drawerState.wordChoices.length === 3);
+    assert.strictEqual(guesserState.wordChoices, null);
+    assert.strictEqual(guesserState.word, null);
+
+    // 2. Drawer selects 1 word
+    const chosen = game.state.wordChoices[1].word;
+    const ok = game.selectWord(chosen);
+    assert.strictEqual(ok, true);
+    assert.strictEqual(game.state.phase, 'DRAWING');
+    assert.strictEqual(game.state.word, chosen);
+    assert.strictEqual(game.state.timeRemaining, 60);
+
+    // 3. Drawing and Undo
+    game.addStroke({ x0: 0, y0: 0, x1: 10, y1: 10, color: '#FFFFFF', size: 4, isEraser: false, strokeId: 's1' });
+    game.addStroke({ x0: 10, y0: 10, x1: 20, y1: 20, color: '#FFFFFF', size: 4, isEraser: false, strokeId: 's1' });
+    game.addStroke({ x0: 20, y0: 20, x1: 30, y1: 30, color: '#EF4444', size: 6, isEraser: false, strokeId: 's2' });
+    assert.strictEqual(game.state.strokes.length, 3);
+
+    // Undo removes the last stroke group (strokeId 's2')
+    game.undoLastStroke();
+    assert.strictEqual(game.state.strokes.length, 2);
+    assert.strictEqual(game.state.strokes[1].strokeId, 's1');
+
+    // 4. Guesser guesses correct word
+    const res = game.processGuess('p2', 'Guesser1', chosen);
     assert.strictEqual(res.isCorrect, true);
     assert.strictEqual(res.pointsAwarded?.points, 200); // 1st guesser gets 200
     assert.strictEqual(res.drawerBonus?.points, 40); // Drawer gets 40
+
+    // 5. Drawer rotation on next round
+    const nextRes = game.nextRound({ p1: 'Drawer', p2: 'Guesser1', p3: 'Guesser2' });
+    assert.strictEqual(nextRes.shouldEndGame, false);
+    assert.strictEqual(game.state.round, 2);
+    assert.strictEqual(game.state.drawerId, 'p2'); // Rotated to next player
+    assert.strictEqual(game.state.phase, 'SELECTING');
+  });
+
+  test('RoomManager: game settings configuration and Vote Kick system', () => {
+    const manager = new RoomManager();
+    const { room } = manager.createRoom(
+      { id: 'host', nickname: 'HostPlayer', avatar: '👑', color: '#8B5CF6' },
+      's-host'
+    );
+    manager.joinRoom(room.code, { id: 'p2', nickname: 'Player2', avatar: '🦊', color: '#3B82F6' }, 's-p2');
+    manager.joinRoom(room.code, { id: 'p3', nickname: 'Player3', avatar: '🦄', color: '#EC4899' }, 's-p3');
+
+    // 1. Host updates Quick Draw rounds
+    const updateOk = manager.updateGameSettings(room.code, 'host', { quickDrawRounds: 5 });
+    assert.strictEqual(updateOk, true);
+    assert.strictEqual(room.gameSettings.quickDrawRounds, 5);
+
+    // Non-host cannot update settings
+    const badUpdate = manager.updateGameSettings(room.code, 'p2', { quickDrawRounds: 10 });
+    assert.strictEqual(badUpdate, false);
+
+    // 2. Vote Kick: Host is protected
+    const kickHostRes = manager.startVoteKick(room.code, 'p2', 'host');
+    assert.strictEqual(kickHostRes.success, false);
+    assert.ok(kickHostRes.error?.includes('host cannot be kicked'));
+
+    // Cannot vote kick self
+    const kickSelfRes = manager.startVoteKick(room.code, 'p2', 'p2');
+    assert.strictEqual(kickSelfRes.success, false);
+
+    // 3. Initiate vote kick against Player 3
+    const startKick = manager.startVoteKick(room.code, 'p2', 'p3');
+    assert.strictEqual(startKick.success, true);
+    assert.strictEqual(startKick.voteState?.targetId, 'p3');
+    assert.strictEqual(startKick.voteState?.yesVotes.length, 1); // Initiator votes Yes
+
+    // Duplicate vote rejected
+    const dupVote = manager.castVoteKick(room.code, 'p2', 'yes');
+    assert.strictEqual(dupVote.success, false);
+
+    // Host votes Yes -> Majority reached (2 yes out of 2 eligible voters)
+    const hostVote = manager.castVoteKick(room.code, 'host', 'yes');
+    assert.strictEqual(hostVote.success, true);
+    assert.strictEqual(hostVote.resolved, true);
+    assert.strictEqual(hostVote.passed, true);
+    assert.strictEqual(hostVote.targetPlayer?.id, 'p3');
+
+    // Target p3 was removed from room
+    assert.strictEqual(room.players['p3'], undefined);
   });
 
   test('Who Knows Me Best: compares predictions to spotlight answer', () => {

@@ -4,6 +4,7 @@ import {
   GameType,
   RoomStatus,
   DrawStroke,
+  VoteKickState,
 } from '../types/index.js';
 import { SecretAgentGame } from '../games/secretAgent.js';
 import { FakeAnswerGame } from '../games/fakeAnswer.js';
@@ -75,6 +76,8 @@ export class RoomManager {
       minPlayers: 2,
       gameSession: null,
       sessionLeaderboard: { [player.id]: 0 },
+      gameSettings: { quickDrawRounds: 3 },
+      activeVoteKick: null,
       createdAt: Date.now(),
       lastActivity: Date.now(),
     };
@@ -114,6 +117,15 @@ export class RoomManager {
       existingPlayer.socketId = socketId;
       existingPlayer.isConnected = true;
       existingPlayer.lastActive = Date.now();
+      if (joinData.nickname) existingPlayer.nickname = joinData.nickname;
+      if (joinData.avatar) existingPlayer.avatar = joinData.avatar;
+      if (joinData.color) existingPlayer.color = joinData.color;
+
+      // Preserve/restore host status if this player is the room's host
+      if (room.hostId === existingPlayer.id) {
+        existingPlayer.isHost = true;
+      }
+
       room.lastActivity = Date.now();
       this.socketToPlayerMap.set(socketId, { roomCode: code, playerId: existingPlayer.id });
 
@@ -157,6 +169,10 @@ export class RoomManager {
     return { success: true, room, player, isReconnect: false };
   }
 
+  registerSocket(socketId: string, roomCode: string, playerId: string): void {
+    this.socketToPlayerMap.set(socketId, { roomCode: roomCode.toUpperCase().trim(), playerId });
+  }
+
   getRoom(roomCode: string): Room | undefined {
     return this.rooms.get(roomCode.toUpperCase().trim());
   }
@@ -189,6 +205,20 @@ export class RoomManager {
     return true;
   }
 
+  updateGameSettings(
+    roomCode: string,
+    hostPlayerId: string,
+    settings: { quickDrawRounds?: number }
+  ): boolean {
+    const room = this.rooms.get(roomCode);
+    if (!room || room.hostId !== hostPlayerId || room.status !== 'LOBBY') return false;
+    if (settings.quickDrawRounds) {
+      room.gameSettings.quickDrawRounds = settings.quickDrawRounds;
+    }
+    room.lastActivity = Date.now();
+    return true;
+  }
+
   handleDisconnect(socketId: string): {
     room: Room;
     player: Player;
@@ -205,6 +235,12 @@ export class RoomManager {
     const player = room.players[meta.playerId];
     if (!player) return null;
 
+    // RACE CONDITION GUARD:
+    // If player has already reconnected with a newer socketId, ignore the older socket's disconnect
+    if (player.socketId && player.socketId !== socketId) {
+      return null;
+    }
+
     player.isConnected = false;
     player.lastActive = Date.now();
     room.lastActivity = Date.now();
@@ -212,8 +248,9 @@ export class RoomManager {
     let hostMigrated = false;
     const activePlayers = Object.values(room.players).filter((p) => p.isConnected);
 
-    // If host disconnected, reassign to next connected player
-    if (player.isHost && activePlayers.length > 0) {
+    // Only migrate host if the game is actively IN_GAME and active players remain.
+    // In LOBBY, keep hostId intact so a momentarily disconnected host (e.g. sharing link) retains host controls upon return.
+    if (room.status !== 'LOBBY' && player.isHost && activePlayers.length > 0) {
       player.isHost = false;
       activePlayers[0].isHost = true;
       room.hostId = activePlayers[0].id;
@@ -280,7 +317,10 @@ export class RoomManager {
         instance = { type: 'FAKE_ANSWER', engine: new FakeAnswerGame(playerIds) };
         break;
       case 'QUICK_DRAW':
-        instance = { type: 'QUICK_DRAW', engine: new QuickDrawGame(playerIds, playerNicknames) };
+        instance = {
+          type: 'QUICK_DRAW',
+          engine: new QuickDrawGame(playerIds, playerNicknames, room.gameSettings?.quickDrawRounds),
+        };
         break;
       case 'WHO_KNOWS_ME':
         instance = { type: 'WHO_KNOWS_ME', engine: new WhoKnowsMeGame(playerIds, playerNicknames) };
@@ -392,6 +432,146 @@ export class RoomManager {
     return this.returnToLobby(roomCode, hostPlayerId);
   }
 
+  // --- VOTE KICK SYSTEM ---
+
+  startVoteKick(
+    roomCode: string,
+    initiatorId: string,
+    targetId: string
+  ): { success: boolean; error?: string; voteState?: VoteKickState } {
+    const room = this.rooms.get(roomCode.toUpperCase().trim());
+    if (!room) return { success: false, error: 'Room not found' };
+
+    if (targetId === initiatorId) {
+      return { success: false, error: 'You cannot vote to kick yourself' };
+    }
+    if (targetId === room.hostId) {
+      return { success: false, error: 'The room host cannot be kicked' };
+    }
+    const target = room.players[targetId];
+    if (!target) {
+      return { success: false, error: 'Target player not found in room' };
+    }
+    const initiator = room.players[initiatorId];
+    if (!initiator) {
+      return { success: false, error: 'Initiating player not found' };
+    }
+
+    if (room.activeVoteKick) {
+      return { success: false, error: 'A vote kick is already active in this room' };
+    }
+
+    if (room.lastVoteKickTime && Date.now() - room.lastVoteKickTime < 30000) {
+      const waitSec = Math.ceil((30000 - (Date.now() - room.lastVoteKickTime)) / 1000);
+      return { success: false, error: `Vote kick is on cooldown. Please wait ${waitSec}s.` };
+    }
+
+    const eligibleVoters = Object.keys(room.players).filter(
+      (id) => id !== targetId && room.players[id].isConnected
+    );
+
+    room.activeVoteKick = {
+      targetId,
+      targetNickname: target.nickname,
+      initiatedBy: initiatorId,
+      initiatedByNickname: initiator.nickname,
+      yesVotes: [initiatorId],
+      noVotes: [],
+      eligibleVoters,
+      expiresAt: Date.now() + 25000,
+    };
+    room.lastActivity = Date.now();
+
+    // Check if 1 vote is already majority (e.g. only 1 eligible voter exists)
+    const needed = Math.floor(eligibleVoters.length / 2) + 1;
+    if (room.activeVoteKick.yesVotes.length >= needed) {
+      const targetPlayer = room.players[targetId];
+      this.kickPlayer(roomCode, targetId);
+      const finishedState = { ...room.activeVoteKick };
+      room.activeVoteKick = null;
+      room.lastVoteKickTime = Date.now();
+      return {
+        success: true,
+        voteState: finishedState,
+      };
+    }
+
+    return { success: true, voteState: room.activeVoteKick };
+  }
+
+  castVoteKick(
+    roomCode: string,
+    voterId: string,
+    vote: 'yes' | 'no'
+  ): {
+    success: boolean;
+    error?: string;
+    voteState?: VoteKickState;
+    resolved?: boolean;
+    passed?: boolean;
+    targetPlayer?: Player;
+  } {
+    const room = this.rooms.get(roomCode.toUpperCase().trim());
+    if (!room || !room.activeVoteKick) {
+      return { success: false, error: 'No active vote kick' };
+    }
+
+    const vk = room.activeVoteKick;
+    if (!vk.eligibleVoters.includes(voterId)) {
+      return { success: false, error: 'You are not eligible to vote' };
+    }
+
+    if (vk.yesVotes.includes(voterId) || vk.noVotes.includes(voterId)) {
+      return { success: false, error: 'You have already voted' };
+    }
+
+    if (vote === 'yes') {
+      vk.yesVotes.push(voterId);
+    } else {
+      vk.noVotes.push(voterId);
+    }
+
+    const totalEligible = vk.eligibleVoters.length;
+    const neededYes = Math.floor(totalEligible / 2) + 1;
+
+    if (vk.yesVotes.length >= neededYes) {
+      // Majority voted YES -> Player Kicked
+      const targetPlayer = room.players[vk.targetId];
+      this.kickPlayer(roomCode, vk.targetId);
+      room.activeVoteKick = null;
+      room.lastVoteKickTime = Date.now();
+      return { success: true, resolved: true, passed: true, targetPlayer };
+    }
+
+    if (
+      vk.noVotes.length > totalEligible - neededYes ||
+      vk.yesVotes.length + vk.noVotes.length >= totalEligible
+    ) {
+      // Failed to reach majority
+      room.activeVoteKick = null;
+      room.lastVoteKickTime = Date.now();
+      return { success: true, resolved: true, passed: false };
+    }
+
+    return { success: true, resolved: false, voteState: vk };
+  }
+
+  kickPlayer(roomCode: string, targetId: string): Player | null {
+    const room = this.rooms.get(roomCode.toUpperCase().trim());
+    if (!room) return null;
+
+    const player = room.players[targetId];
+    if (!player) return null;
+
+    if (player.socketId) {
+      this.socketToPlayerMap.delete(player.socketId);
+    }
+    delete room.players[targetId];
+    delete room.sessionLeaderboard[targetId];
+    room.lastActivity = Date.now();
+    return player;
+  }
+
   getSanitizedRoomState(roomCode: string, forPlayerId: string) {
     const room = this.rooms.get(roomCode);
     if (!room) return null;
@@ -450,14 +630,15 @@ export class RoomManager {
       minPlayers: room.minPlayers,
       leaderboard: room.sessionLeaderboard,
       gameSession: gameStateData,
+      gameSettings: room.gameSettings,
+      activeVoteKick: room.activeVoteKick,
     };
   }
 
   private cleanupAbandonedRooms() {
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
     for (const [code, room] of this.rooms.entries()) {
-      const activePlayers = Object.values(room.players).filter((p) => p.isConnected);
-      if (activePlayers.length === 0 || room.lastActivity < oneHourAgo) {
+      if (room.lastActivity < thirtyMinutesAgo) {
         this.rooms.delete(code);
         this.activeGames.delete(code);
         const timer = this.gameTimers.get(code);
