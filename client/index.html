@@ -6,12 +6,14 @@
     <title>CHAOS CLUB – Multiplayer Party Gaming Platform</title>
     <meta name="description" content="Less scrolling. More chaos. Real-time multiplayer party games to play with your friends!" />
     <meta name="theme-color" content="#8B5CF6" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Chaos Club" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="CHAOS CLUB" />
+    <meta name="apple-mobile-web-app-title" content="Chaos Club" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,13 +22,5 @@
   <body class="bg-background text-gray-100 antialiased selection:bg-purple-600 selection:text-white overflow-x-hidden min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch((err) => console.log('SW registration error:', err));
-        });
-      }
-    </script>
   </body>
 </html>
-
