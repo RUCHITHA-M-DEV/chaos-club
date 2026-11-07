@@ -25,7 +25,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
         return <span className="text-xl">🥉</span>;
       default:
         return (
-          <span className="w-6 h-6 rounded-full bg-surfaceLight flex items-center justify-center text-xs font-bold text-gray-400">
+          <span className="w-6 h-6 rounded-full bg-surfaceLight flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400">
             #{rank + 1}
           </span>
         );
@@ -36,10 +36,10 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
     <div className="glass-card rounded-2xl p-4 sm:p-5 border border-purple-500/20 shadow-xl">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-amber-400" />
-          <h3 className="font-bold text-base sm:text-lg text-white">Live Leaderboard</h3>
+          <Trophy className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+          <h3 className="font-bold text-base sm:text-lg text-gray-900 dark:text-white">Live Leaderboard</h3>
         </div>
-        <span className="text-xs text-purple-300 font-semibold px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30">
+        <span className="text-xs text-purple-700 dark:text-purple-300 font-semibold px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30">
           {sortedPlayers.length} Players
         </span>
       </div>
@@ -52,8 +52,8 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
               key={player.id}
               className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl transition-all duration-200 ${
                 isMe
-                  ? 'bg-purple-900/40 border-2 border-purple-500/60 shadow-md shadow-purple-500/10'
-                  : 'bg-surface/60 border border-purple-500/10 hover:border-purple-500/30'
+                  ? 'bg-purple-500/15 dark:bg-purple-900/40 border-2 border-purple-500/60 shadow-md shadow-purple-500/10'
+                  : 'bg-surface/80 border border-purple-500/10 hover:border-purple-500/30'
               }`}
             >
               {/* Rank & Profile */}
@@ -67,36 +67,36 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-sm sm:text-base text-gray-100 max-w-[100px] sm:max-w-[140px] truncate">
+                    <span className="font-bold text-sm sm:text-base text-gray-900 dark:text-gray-100 max-w-[100px] sm:max-w-[140px] truncate">
                       {player.nickname}
                     </span>
                     {isMe && (
-                      <span className="text-[10px] px-1 py-0.2 rounded bg-purple-500/30 text-purple-300 font-bold">
+                      <span className="text-[10px] px-1 py-0.2 rounded bg-purple-500/20 text-purple-700 dark:text-purple-300 font-bold">
                         YOU
                       </span>
                     )}
                     {player.isHost && (
-                      <span className="text-[10px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">
+                      <span className="text-[10px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold">
                         HOST
                       </span>
                     )}
                   </div>
                   {!player.isConnected && (
-                    <span className="text-[10px] text-rose-400">Disconnected</span>
+                    <span className="text-[10px] text-rose-500 dark:text-rose-400">Disconnected</span>
                   )}
                 </div>
               </div>
 
               {/* Scores */}
               <div className="text-right">
-                <div className="flex items-center justify-end gap-1 font-black text-base sm:text-lg text-purple-300">
-                  <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                <div className="flex items-center justify-end gap-1 font-black text-base sm:text-lg text-purple-700 dark:text-purple-300">
+                  <Star className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 fill-amber-500" />
                   <span>{player.score}</span>
                 </div>
                 {showRoundScore && player.currentRoundScore !== 0 && (
                   <div
                     className={`text-xs font-semibold ${
-                      player.currentRoundScore > 0 ? 'text-emerald-400' : 'text-rose-400'
+                      player.currentRoundScore > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                     }`}
                   >
                     {player.currentRoundScore > 0
@@ -112,4 +112,3 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
     </div>
   );
 };
-

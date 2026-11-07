@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, Wifi, WifiOff, LogOut, Download, Sparkles } from 'lucide-react';
+import { Volume2, VolumeX, Wifi, WifiOff, LogOut, Download, Sparkles, Sun, Moon } from 'lucide-react';
 import { sound } from '../../services/sound';
+import { useTheme } from '../../context/ThemeContext';
 import { Player } from '../../types';
 
 interface HeaderProps {
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   onLeaveRoom,
   onLogoClick,
 }) => {
+  const { theme, toggleTheme } = useTheme();
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
@@ -49,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-xl bg-background/80 border-b border-purple-500/15 px-4 py-3">
+    <header className="sticky top-0 z-50 w-full backdrop-blur-xl bg-background/85 border-b border-purple-500/15 px-4 py-3 transition-colors duration-250">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         {/* Brand Logo */}
         <div
@@ -57,16 +59,16 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-2 cursor-pointer group select-none"
         >
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 via-pink-500 to-cyan-400 p-[2px] transition-transform duration-300 group-hover:scale-105 group-hover:rotate-3 shadow-lg shadow-purple-500/25">
-            <div className="w-full h-full bg-surface rounded-[10px] flex items-center justify-center font-black text-lg text-transparent bg-clip-text bg-gradient-to-tr from-purple-400 to-pink-400">
+            <div className="w-full h-full bg-surface rounded-[10px] flex items-center justify-center font-black text-lg text-transparent bg-clip-text bg-gradient-to-tr from-purple-500 to-pink-500">
               ⚡
             </div>
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-lg sm:text-xl tracking-tight text-white group-hover:text-purple-300 transition-colors">
-                CHAOS<span className="text-purple-400">CLUB</span>
+              <span className="font-extrabold text-lg sm:text-xl tracking-tight text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
+                CHAOS<span className="text-purple-600 dark:text-purple-400">CLUB</span>
               </span>
-              <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
                 Party
               </span>
             </div>
@@ -74,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {/* PWA Install Button */}
           {showInstallBtn && (
             <button
@@ -91,13 +93,13 @@ export const Header: React.FC<HeaderProps> = ({
             title={isConnected ? 'Connected to Multiplayer Server' : 'Connecting to Server...'}
             className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${
               isConnected
-                ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400'
-                : 'bg-rose-950/40 border-rose-500/30 text-rose-400 animate-pulse'
+                ? 'bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                : 'bg-rose-500/10 dark:bg-rose-950/40 border-rose-500/30 text-rose-600 dark:text-rose-400 animate-pulse'
             }`}
           >
             {isConnected ? (
               <>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-75"></span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping opacity-75"></span>
                 <span className="hidden md:inline">Online</span>
               </>
             ) : (
@@ -108,30 +110,45 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
+          {/* Theme Toggle (Dark / Light) */}
+          <button
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            className="w-9 h-9 rounded-xl bg-surfaceLight/80 hover:bg-surfaceLight border border-purple-500/20 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-white transition-all shadow-sm"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400 transition-transform hover:rotate-45" />
+            ) : (
+              <Moon className="w-4 h-4 text-purple-600 transition-transform hover:-rotate-12" />
+            )}
+          </button>
+
           {/* Sound Mute Toggle */}
           <button
             onClick={handleToggleSound}
             aria-label={isMuted ? 'Unmute Sound' : 'Mute Sound'}
-            className="w-9 h-9 rounded-xl bg-surfaceLight/80 hover:bg-surfaceLight border border-purple-500/20 flex items-center justify-center text-gray-300 hover:text-white transition-colors"
+            title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
+            className="w-9 h-9 rounded-xl bg-surfaceLight/80 hover:bg-surfaceLight border border-purple-500/20 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-white transition-all shadow-sm"
           >
             {isMuted ? (
               <VolumeX className="w-4 h-4 text-gray-400" />
             ) : (
-              <Volume2 className="w-4 h-4 text-purple-400" />
+              <Volume2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             )}
           </button>
 
           {/* Active Player Chip */}
           {player && (
-            <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-surface border border-purple-500/20">
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-surface border border-purple-500/20 shadow-sm">
               <span className="text-lg leading-none" style={{ color: player.color }}>
                 {player.avatar}
               </span>
-              <span className="text-xs font-bold text-gray-200 max-w-[80px] sm:max-w-[120px] truncate">
+              <span className="text-xs font-bold text-gray-800 dark:text-gray-200 max-w-[80px] sm:max-w-[120px] truncate">
                 {player.nickname}
               </span>
               {player.isHost && (
-                <span className="text-[10px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40">
+                <span className="text-[10px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 font-semibold border border-amber-500/40">
                   HOST
                 </span>
               )}
@@ -147,7 +164,7 @@ export const Header: React.FC<HeaderProps> = ({
                   onLeaveRoom();
                 }
               }}
-              className="w-9 h-9 rounded-xl bg-red-950/40 hover:bg-red-900/50 border border-red-500/30 flex items-center justify-center text-red-400 hover:text-red-300 transition-colors"
+              className="w-9 h-9 rounded-xl bg-red-500/10 dark:bg-red-950/40 hover:bg-red-500/20 dark:hover:bg-red-900/50 border border-red-500/30 flex items-center justify-center text-red-600 dark:text-red-400 transition-colors"
               title="Leave Room"
             >
               <LogOut className="w-4 h-4" />
@@ -158,4 +175,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-

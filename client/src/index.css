@@ -2,11 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-primary: #F1F5F9;
+  --bg-surface: rgba(255, 255, 255, 0.88);
+  --bg-surface-light: #E2E8F0;
+  --text-main: #0F172A;
+  --text-muted: #475569;
+  --card-border: rgba(139, 92, 246, 0.22);
+  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+}
+
+.dark {
+  --bg-primary: #07090E;
+  --bg-surface: rgba(14, 19, 34, 0.78);
+  --bg-surface-light: #182036;
+  --text-main: #F3F4F6;
+  --text-muted: #9CA3AF;
+  --card-border: rgba(139, 92, 246, 0.18);
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
 @layer base {
   body {
-    background-color: #07090E;
-    color: #F3F4F6;
+    background-color: var(--bg-primary);
+    color: var(--text-main);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -16,11 +37,11 @@
 
 @layer utilities {
   .glass-card {
-    background: rgba(14, 19, 34, 0.75);
+    background: var(--bg-surface);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(139, 92, 246, 0.18);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
   }
 
   .glass-card-hover {
@@ -61,15 +82,14 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #07090E;
+  background: var(--bg-primary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1F293D;
+  background: rgba(139, 92, 246, 0.3);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #374151;
+  background: rgba(139, 92, 246, 0.5);
 }
-

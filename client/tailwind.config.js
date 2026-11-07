@@ -1,12 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
-        background: '#07090E',
-        surface: '#0E1322',
-        surfaceLight: '#182036',
+        background: 'var(--bg-primary)',
+        surface: 'var(--bg-surface)',
+        surfaceLight: 'var(--bg-surface-light)',
         chaosPurple: '#8B5CF6',
         chaosPink: '#EC4899',
         chaosBlue: '#3B82F6',
@@ -36,4 +37,3 @@ export default {
   },
   plugins: [],
 };
-

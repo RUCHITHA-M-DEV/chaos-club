@@ -96,7 +96,7 @@ export const PlayerEntry: React.FC<PlayerEntryProps> = ({
     <div className="max-w-md mx-auto px-4 py-8">
       <div className="glass-card rounded-3xl p-6 sm:p-8 border border-purple-500/30 shadow-2xl relative">
         {/* Header Tabs */}
-        <div className="grid grid-cols-2 p-1 rounded-2xl bg-surface mb-6 border border-purple-500/20">
+        <div className="grid grid-cols-2 p-1 rounded-2xl bg-surfaceLight mb-6 border border-purple-500/20">
           <button
             type="button"
             onClick={() => {
@@ -106,7 +106,7 @@ export const PlayerEntry: React.FC<PlayerEntryProps> = ({
             className={`py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all ${
               mode === 'create'
                 ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
-                : 'text-gray-400 hover:text-white'
+                : 'text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-white'
             }`}
           >
             <PlusCircle className="w-4 h-4" />
@@ -121,7 +121,7 @@ export const PlayerEntry: React.FC<PlayerEntryProps> = ({
             className={`py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all ${
               mode === 'join'
                 ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
-                : 'text-gray-400 hover:text-white'
+                : 'text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-white'
             }`}
           >
             <LogIn className="w-4 h-4" />
@@ -131,7 +131,7 @@ export const PlayerEntry: React.FC<PlayerEntryProps> = ({
 
         {/* Error notification */}
         {(formError || errorMessage) && (
-          <div className="mb-5 p-3 rounded-xl bg-rose-950/60 border border-rose-500/50 text-rose-300 text-xs font-semibold text-center animate-shake">
+          <div className="mb-5 p-3 rounded-xl bg-rose-500/10 dark:bg-rose-950/60 border border-rose-500/50 text-rose-600 dark:text-rose-300 text-xs font-semibold text-center animate-shake">
             {formError || errorMessage}
           </div>
         )}
@@ -153,17 +153,17 @@ export const PlayerEntry: React.FC<PlayerEntryProps> = ({
                 type="button"
                 onClick={handleRandomize}
                 title="Randomize Profile"
-                className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-surface border border-purple-500/40 text-purple-300 hover:text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-90 transition-all"
+                className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-surface border border-purple-500/40 text-purple-600 dark:text-purple-300 hover:text-purple-700 dark:hover:text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-90 transition-all"
               >
                 <Dices className="w-4 h-4" />
               </button>
             </div>
-            <span className="text-xs text-gray-400 font-medium">Select or Randomize Your Vibe</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Select or Randomize Your Vibe</span>
           </div>
 
           {/* Nickname Input */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-300 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-2">
               Your Nickname
             </label>
             <input
@@ -173,14 +173,14 @@ export const PlayerEntry: React.FC<PlayerEntryProps> = ({
               placeholder="e.g. ChaosKing"
               maxLength={15}
               required
-              className="w-full px-4 py-3 rounded-xl bg-surface border border-purple-500/25 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 text-white font-medium placeholder-gray-500 text-sm"
+              className="w-full px-4 py-3 rounded-xl bg-surface border border-purple-500/25 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30 text-gray-900 dark:text-white font-medium placeholder-gray-400 dark:placeholder-gray-500 text-sm shadow-sm"
             />
           </div>
 
           {/* Room Code (if in Join mode) */}
           {mode === 'join' && (
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-300 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-2">
                 6-Character Room Code
               </label>
               <input
@@ -190,14 +190,14 @@ export const PlayerEntry: React.FC<PlayerEntryProps> = ({
                 placeholder="e.g. X7K9P2"
                 maxLength={6}
                 required
-                className="w-full px-4 py-3 rounded-xl bg-surface border border-purple-500/25 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-500/30 text-white font-mono font-black text-center tracking-widest text-lg uppercase"
+                className="w-full px-4 py-3 rounded-xl bg-surface border border-purple-500/25 focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-500/30 text-gray-900 dark:text-white font-mono font-black text-center tracking-widest text-lg uppercase shadow-sm"
               />
             </div>
           )}
 
           {/* Avatar Picker Swatches */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-300 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-2">
               Choose Avatar
             </label>
             <div className="grid grid-cols-8 gap-2">
@@ -211,7 +211,7 @@ export const PlayerEntry: React.FC<PlayerEntryProps> = ({
                   }}
                   className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg transition-transform ${
                     avatar === av
-                      ? 'bg-purple-600 scale-110 shadow-md ring-2 ring-white/50'
+                      ? 'bg-purple-600 text-white scale-110 shadow-md ring-2 ring-purple-400'
                       : 'bg-surface hover:bg-surfaceLight'
                   }`}
                 >
@@ -223,7 +223,7 @@ export const PlayerEntry: React.FC<PlayerEntryProps> = ({
 
           {/* Color Picker Swatches */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-300 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-2">
               Profile Color
             </label>
             <div className="flex items-center justify-between gap-2">
@@ -236,7 +236,7 @@ export const PlayerEntry: React.FC<PlayerEntryProps> = ({
                     setColor(c);
                   }}
                   className={`w-7 h-7 rounded-full transition-transform ${
-                    color === c ? 'scale-125 ring-2 ring-white' : 'hover:scale-110 opacity-70 hover:opacity-100'
+                    color === c ? 'scale-125 ring-2 ring-purple-600 dark:ring-white' : 'hover:scale-110 opacity-70 hover:opacity-100'
                   }`}
                   style={{ backgroundColor: c }}
                 />
@@ -272,4 +272,3 @@ export const PlayerEntry: React.FC<PlayerEntryProps> = ({
     </div>
   );
 };
-

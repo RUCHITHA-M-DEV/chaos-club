@@ -280,7 +280,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-gray-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col font-sans">
       <Header
         player={currentPlayer}
         roomCode={room?.code || null}
