@@ -1,7 +1,5 @@
 import mongoose from 'mongoose';
 
-let isConnected = false;
-
 export async function connectDB(): Promise<boolean> {
   const mongoUri = process.env.MONGODB_URI;
 
@@ -12,7 +10,6 @@ export async function connectDB(): Promise<boolean> {
 
   try {
     const conn = await mongoose.connect(mongoUri);
-    isConnected = true;
     console.log(`✅ MongoDB Atlas Connected: ${conn.connection.host}`);
     return true;
   } catch (error) {
@@ -23,6 +20,5 @@ export async function connectDB(): Promise<boolean> {
 }
 
 export function isDbConnected(): boolean {
-  return isConnected;
+  return mongoose.connection.readyState === 1;
 }
-

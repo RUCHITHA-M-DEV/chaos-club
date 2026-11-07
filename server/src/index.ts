@@ -3,6 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 import { connectDB, isDbConnected } from './config/db.js';
 import { RoomManager } from './managers/roomManager.js';
 import { setupSocketHandlers } from './sockets/socketHandler.js';
@@ -44,7 +45,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     app: 'CHAOS CLUB Multiplayer Server',
-    dbConnected: isDbConnected(),
+    dbConnected: mongoose.connection.readyState === 1,
     timestamp: new Date().toISOString(),
   });
 });
@@ -132,4 +133,3 @@ async function start() {
 start();
 
 export { app, server, roomManager };
-
